@@ -1,5 +1,7 @@
 #include <wtypes.h>
 #include "resource.h"
+#include <CommCtrl.h>
+
 void onCancel(HWND hDlg)
 {
     SendMessage(hDlg, WM_CLOSE, 0, 0);
@@ -12,6 +14,11 @@ void onClose(HWND hDlg)
     {
         DestroyWindow(hDlg);
     }
+}
+
+void onOK(HWND hStatus)
+{
+    SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM) L"Mama ti!");
 }
 
 // Message handler for "About" box.
