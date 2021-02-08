@@ -146,8 +146,9 @@
     <ResourceCompile Include="stm32dds.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="fDialogProcActions.cpp" />
+    <ClCompile Include="fGeneralActions.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="fUSBDevice.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

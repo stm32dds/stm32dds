@@ -1,10 +1,6 @@
-#include <Windows.h>
-#include <winuser.h>
-#include <CommCtrl.h>
-#include <tchar.h>
-#include "resource.h"
 #include "main.h"
 
+#pragma comment (lib, "Setupapi.lib")
 #pragma comment(linker, \
   "\"/manifestdependency:type='Win32' "\
   "name='Microsoft.Windows.Common-Controls' "\
@@ -12,11 +8,16 @@
   "processorArchitecture='*' "\
   "publicKeyToken='6595b64144ccf1df' "\
   "language='*'\"")
-
 #pragma comment(lib, "ComCtl32.lib")
 
 //Status bar variable
 HWND hStatus;
+
+//USB Device variables
+//DCB dcb;
+HANDLE hCom;
+BOOL isConnected = FALSE; // Device is connected to programm
+TCHAR pcCommPort[20] = { 0 };
 
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -28,12 +29,12 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
         case IDCANCEL: onCancel(hDlg); return TRUE; /* call subroutine */
         case IDC_ABOUT: onAbout(hDlg); return TRUE;
-        case IDOK: onOK(hStatus); return TRUE;
+        case IDC_CONNECT: if(isConnected==FALSE)
+            isConnected = onConnect(hDlg, pcCommPort, hCom, hStatus); return TRUE;
         }
         break;
-
-    case WM_CLOSE:   onClose(hDlg); return TRUE; /* call subroutine */
-    case WM_DESTROY: PostQuitMessage(0); return TRUE;
+    case WM_CLOSE:   onClose(hDlg, hCom); return TRUE; /* call subroutine */
+    case WM_DESTROY: PostQuitMessage(0); return TRUE; /*called by onClose*/
     }
 
     return FALSE;
@@ -50,7 +51,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 
 // Create the window.
 // Dialog type windows are not registrated as separate window class
-    hDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG1), 0, DialogProc, 0);
+    hDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG_MAIN), 0, DialogProc, 0);
 //Create simple statusbar on main dialog window
     hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL,
       WS_CHILD | WS_VISIBLE , 0, 0, 0, 0,hDlg,

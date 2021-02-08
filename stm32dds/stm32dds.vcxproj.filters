@@ -31,7 +31,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="fDialogProcActions.cpp">
+    <ClCompile Include="fUSBDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fGeneralActions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
