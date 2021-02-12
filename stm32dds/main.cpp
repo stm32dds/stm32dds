@@ -14,10 +14,14 @@
 HWND hStatus;
 
 //USB Device variables
-//DCB dcb;
+DCB dcb;
 HANDLE hCom;
-BOOL isConnected = FALSE; // Device is connected to programm
+BOOL isConnected = FALSE; // Is Device connected or NOT?
+BOOL isStarted = 0; //is device started or NOT?
 TCHAR pcCommPort[20] = { 0 };
+
+//Wave variables
+unsigned __int16 aCalculatedWave[360];// Wave that will be sent to device
 
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -30,7 +34,10 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case IDCANCEL: onCancel(hDlg); return TRUE; /* call subroutine */
         case IDC_ABOUT: onAbout(hDlg); return TRUE;
         case IDC_CONNECT: if(isConnected==FALSE)
-            isConnected = onConnect(hDlg, pcCommPort, hCom, hStatus); return TRUE;
+            isConnected = onConnect(hDlg, pcCommPort, hCom, hStatus, &dcb, aCalculatedWave); return TRUE;
+        case IDC_STARTSTOP: if (isConnected == TRUE)
+            isStarted = onStartStop(hDlg, pcCommPort, hCom, hStatus,
+                isStarted, aCalculatedWave); return TRUE;
         }
         break;
     case WM_CLOSE:   onClose(hDlg, hCom); return TRUE; /* call subroutine */
@@ -58,6 +65,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
         (HMENU)IDC_DIALOG_STATUS, GetModuleHandle(NULL), NULL);
  // write first init message on status bar
     SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
+
 
     ShowWindow(hDlg, nCmdShow);
 

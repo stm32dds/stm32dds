@@ -1,6 +1,51 @@
 #include "main.h"
 
-BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom, HWND hStatus)
+void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus)
+{
+    unsigned __int8 aOutputBuffer[720];// Data that will sent to device as BYTE USB stream
+    unsigned __int8 aUSBChunkBuffer[61];//Chunk of Data to form BYTE USB packet
+    CreateWave(aCalculatedWave);
+    // 16 bit aCalculatedWaveto to 8 bit aOutputBuffer
+    for (int i = 0, j = 0; i < 720; i += 2, ++j)
+    {
+        aOutputBuffer[i] = aCalculatedWave[j] >> 8; // Hi byte
+        aOutputBuffer[i + 1] = aCalculatedWave[j] & 0xFF; // Lo byte
+    }
+    //Send 720 bytes as chunks of 60 bytes
+    for (int i = 0; i < 12; ++i)
+    {
+        for (int j = 0; j < 60; ++j)
+            aUSBChunkBuffer[j] = aOutputBuffer[i * 60 + j];
+        aUSBChunkBuffer[60] = i;
+        if (WriteFile(hCom, aUSBChunkBuffer, 61, NULL, 0) == FALSE)
+            MessageBox(NULL,
+                L"Fail! Wave not sent!",
+                L"Send wave action",
+                MB_ICONERROR);
+    }
+}
+
+BOOL onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
+    HWND hStatus, BOOL isStarted, unsigned __int16* aCalculatedWave)
+{
+    if (isStarted == FALSE) //start device
+    {
+        SendWave(aCalculatedWave, hCom, hStatus);
+        SetDlgItemTextW(hDlg, IDC_STARTSTOP, L"STOP");
+        SendMessage(hStatus, SB_SETTEXT, 0,
+            (LPARAM)L"Device is RUNNING!");
+        return TRUE;
+    }
+    else //stop device
+    {
+        SetDlgItemTextW(hDlg, IDC_STARTSTOP,L"START");
+        SendMessage(hStatus, SB_SETTEXT, 0,
+            (LPARAM)L"Device is STOPPED!");
+        return FALSE;
+    }
+}
+
+BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus, DCB* dcb, unsigned __int16* aCalculatedWave)
 {
     HDEVINFO DeviceInfoSet;
     DWORD DeviceIndex = 0;
@@ -104,6 +149,27 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom, HWND hStatus)
     }
     else
     {
+        //  Initialize the DCB structure.
+        SecureZeroMemory(dcb, sizeof(DCB));
+        dcb->DCBlength = sizeof(DCB);
+        //  Build on the current configuration by first retrieving all current
+        //  settings.
+        if (GetCommState(hCom, dcb) == FALSE)
+            MessageBox(NULL, L"Can't create DCB!",
+                L"DCB actions", MB_ICONERROR);
+        //  Fill in some DCB values and set the com state: 
+        //  57,600 bps, 8 data bits, no parity, and 1 stop bit.
+        dcb->BaudRate = CBR_9600;     //  baud rate
+        dcb->ByteSize = 8;             //  data size, xmit and rcv
+        dcb->Parity = NOPARITY;      //  parity bit
+        dcb->StopBits = ONESTOPBIT;    //  stop bit
+        if (SetCommState(hCom, dcb) == FALSE)
+            MessageBox(NULL, L"Can't write to DCB!",
+                L"DCB actions", MB_ICONERROR);
+        //  Get the comm config again.
+        if (GetCommState(hCom, dcb) == FALSE)
+            MessageBox(NULL, L"Can't read from DCB!",
+                L"DCB actions", MB_ICONERROR);
         //      TCHAR msgSTR[64] = { 0 };
         wcscpy_s(msgSTR, L"Device is connected as ");
         wcscat_s(msgSTR, pcCommPort);
