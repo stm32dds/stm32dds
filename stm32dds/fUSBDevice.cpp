@@ -1,6 +1,6 @@
 #include "main.h"
 
-void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus)
+void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus, LPOVERLAPPED oW)
 {
     unsigned __int8 aOutputBuffer[720];// Data that will sent to device as BYTE USB stream
     unsigned __int8 aUSBChunkBuffer[61];//Chunk of Data to form BYTE USB packet
@@ -17,20 +17,17 @@ void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus)
         for (int j = 0; j < 60; ++j)
             aUSBChunkBuffer[j] = aOutputBuffer[i * 60 + j];
         aUSBChunkBuffer[60] = i;
-        if (WriteFile(hCom, aUSBChunkBuffer, 61, NULL, 0) == FALSE)
-            MessageBox(NULL,
-                L"Fail! Wave not sent!",
-                L"Send wave action",
-                MB_ICONERROR);
+        WriteFile(hCom, aUSBChunkBuffer, 61, NULL, oW);
+        while (oW->Internal == STATUS_PENDING); // Just wait for operation completion
     }
 }
 
 BOOL onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
-    HWND hStatus, BOOL isStarted, unsigned __int16* aCalculatedWave)
+    HWND hStatus, BOOL isStarted, unsigned __int16* aCalculatedWave, LPOVERLAPPED oW)
 {
     if (isStarted == FALSE) //start device
     {
-        SendWave(aCalculatedWave, hCom, hStatus);
+        SendWave(aCalculatedWave, hCom, hStatus, oW);
         SetDlgItemTextW(hDlg, IDC_STARTSTOP, L"STOP");
         SendMessage(hStatus, SB_SETTEXT, 0,
             (LPARAM)L"Device is RUNNING!");
@@ -45,7 +42,9 @@ BOOL onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
     }
 }
 
-BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus, DCB* dcb, unsigned __int16* aCalculatedWave)
+BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus,
+    DCB dcb, unsigned __int16* aCalculatedWave, LPOVERLAPPED oR, LPOVERLAPPED oW,
+        DWORD dwEventMask, HANDLE hThread, COMMTIMEOUTS comtimes)
 {
     HDEVINFO DeviceInfoSet;
     DWORD DeviceIndex = 0;
@@ -138,7 +137,7 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus, DCB* dc
         0,      //  must be opened with exclusive-access
         NULL,   //  default security attributes
         OPEN_EXISTING, //  must use OPEN_EXISTING
-        0,      //  not overlapped I/O
+        FILE_FLAG_OVERLAPPED,      //Overlapped I/O
         NULL); //  hTemplate must be NULL for comm devices
 
     if (hCom == INVALID_HANDLE_VALUE)
@@ -150,30 +149,74 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus, DCB* dc
     else
     {
         //  Initialize the DCB structure.
-        SecureZeroMemory(dcb, sizeof(DCB));
-        dcb->DCBlength = sizeof(DCB);
+        SecureZeroMemory(&dcb, sizeof(DCB));
+        dcb.DCBlength = sizeof(DCB);
         //  Build on the current configuration by first retrieving all current
         //  settings.
-        if (GetCommState(hCom, dcb) == FALSE)
+        if (GetCommState(hCom, &dcb) == FALSE)
             MessageBox(NULL, L"Can't create DCB!",
                 L"DCB actions", MB_ICONERROR);
         //  Fill in some DCB values and set the com state: 
         //  57,600 bps, 8 data bits, no parity, and 1 stop bit.
-        dcb->BaudRate = CBR_9600;     //  baud rate
-        dcb->ByteSize = 8;             //  data size, xmit and rcv
-        dcb->Parity = NOPARITY;      //  parity bit
-        dcb->StopBits = ONESTOPBIT;    //  stop bit
-        if (SetCommState(hCom, dcb) == FALSE)
+        dcb.BaudRate = CBR_9600;     //  baud rate
+        dcb.ByteSize = 8;             //  data size, xmit and rcv
+        dcb.Parity = NOPARITY;      //  parity bit
+        dcb.StopBits = ONESTOPBIT;    //  stop bit
+        if (SetCommState(hCom, &dcb) == FALSE)
             MessageBox(NULL, L"Can't write to DCB!",
                 L"DCB actions", MB_ICONERROR);
         //  Get the comm config again.
-        if (GetCommState(hCom, dcb) == FALSE)
+        if (GetCommState(hCom, &dcb) == FALSE)
             MessageBox(NULL, L"Can't read from DCB!",
                 L"DCB actions", MB_ICONERROR);
-        //      TCHAR msgSTR[64] = { 0 };
+        //Setup COM Port time outs - not implementd - by default timeouts=0
+        //!Create implementation if communication errors occurs
+        //for example with if(GetCommTimeouts(.....bla-bla
+        comtimes.ReadIntervalTimeout = MAXDWORD;
+        comtimes.ReadTotalTimeoutMultiplier = 0;
+        comtimes.ReadTotalTimeoutConstant = 0;
+        comtimes.WriteTotalTimeoutMultiplier = 0;
+        comtimes.WriteTotalTimeoutConstant = 0;
+
+        if (SetCommTimeouts(hCom, &comtimes) == FALSE)
+            MessageBox(NULL, L"Can't write to COMMTIMEOUTS!",
+                L"COMMTIMEOTS actions", MB_ICONERROR);
+        //Register receiving COM event
+        if (SetCommMask(hCom, EV_RXCHAR)==FALSE)
+            MessageBox(NULL, L"Can't register receiving COM event",
+                L"COM Event", MB_ICONERROR);
+
+        // Create an event object for use by WaitCommEvent when READING from COM port. 
+        oR->hEvent = CreateEvent(
+            NULL,   // default security attributes 
+            TRUE,   // manual-reset event 
+            FALSE,  // not signaled 
+            NULL    // no name
+        );
+
+        // Initialize the rest of the READING OVERLAPPED structure to zero.
+        oR->Internal = 0;
+        oR->InternalHigh = 0;
+        oR->Offset = 0;
+        oR->OffsetHigh = 0;
+     
+        //Initialize WRITING OVERLAPPED STRUCTURE
+        oW->hEvent = NULL; // Not used Event for data sent
+        oW->Internal = 0; //This is pooling to chck that request is complete
+        oW->InternalHigh = 0;
+        oW->Offset = 0;
+        oW->OffsetHigh = 0;
+        
+        //Display on Status bar connected port name
         wcscpy_s(msgSTR, L"Device is connected as ");
         wcscat_s(msgSTR, pcCommPort);
         SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)msgSTR);
         return TRUE;
     }
+}
+
+void ReceiveFromDevice(void)
+{
+    int Temp = 0;
+     Temp++;
 }

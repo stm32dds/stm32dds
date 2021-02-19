@@ -5,11 +5,13 @@ void onCancel(HWND hDlg)
     SendMessage(hDlg, WM_CLOSE, 0, 0);
 }
 
-void onClose(HWND hDlg, HANDLE hCom)
+void onClose(HWND hDlg, HANDLE hCom, HANDLE hThread)
 {
-    CloseHandle(hCom);
+    CloseHandle(hThread); // Close reading thread
+    CloseHandle(hCom); //Closes hStatus also
     DestroyWindow(hDlg); //Destroys Main Dialog Window
                          //& issue WM_DESTROY message to DialogProc
+    
 }
 
 // Message handler for "About" box.
