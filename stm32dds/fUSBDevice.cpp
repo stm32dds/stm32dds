@@ -1,5 +1,11 @@
 #include "main.h"
 
+void SendCommand(unsigned __int8 CmdToDevice, HANDLE hCom, LPOVERLAPPED oW)
+{
+    WriteFile(hCom,  &CmdToDevice, 1, NULL, oW);
+    while (oW->Internal == STATUS_PENDING);
+}
+
 void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus, LPOVERLAPPED oW)
 {
     unsigned __int8 aOutputBuffer[720];// Data that will sent to device as BYTE USB stream
@@ -22,23 +28,25 @@ void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus, LPOV
     }
 }
 
-BOOL onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
+void onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
     HWND hStatus, BOOL isStarted, unsigned __int16* aCalculatedWave, LPOVERLAPPED oW)
 {
     if (isStarted == FALSE) //start device
     {
-        SendWave(aCalculatedWave, hCom, hStatus, oW);
+//        SendWave(aCalculatedWave, hCom, hStatus, oW);
+        SendCommand(USB_DEVICE_START, hCom, oW);
         SetDlgItemTextW(hDlg, IDC_STARTSTOP, L"STOP");
-        SendMessage(hStatus, SB_SETTEXT, 0,
-            (LPARAM)L"Device is RUNNING!");
-        return TRUE;
+//        SendMessage(hStatus, SB_SETTEXT, 0,
+//            (LPARAM)L"Device is RUNNING!");
+//        return !isStarted;
     }
     else //stop device
     {
+        SendCommand(USB_DEVICE_STOP, hCom, oW);
         SetDlgItemTextW(hDlg, IDC_STARTSTOP,L"START");
-        SendMessage(hStatus, SB_SETTEXT, 0,
-            (LPARAM)L"Device is STOPPED!");
-        return FALSE;
+//        SendMessage(hStatus, SB_SETTEXT, 0,
+ //           (LPARAM)L"Device is STOPPED!");
+ //       return !isStarted;
     }
 }
 
@@ -49,11 +57,12 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus,
     HDEVINFO DeviceInfoSet;
     DWORD DeviceIndex = 0;
     SP_DEVINFO_DATA DeviceInfoData;
-    TCHAR stm32ddsId[] = { L"VID_0483&PID_5740" };
+    TCHAR stm32ddsId[] = { L"VID_1209&PID_DD83" };
     BYTE szBuffer[1024] = { 0 };
     DEVPROPTYPE ulPropertyType;
     DWORD dwSize = 0;
     TCHAR msgSTR[64] = { 0 };
+    TCHAR pcCommPortTemp[10] = { 0 };
     //SetupDiGetClassDevs returns a handle to a device information set
     DeviceInfoSet = SetupDiGetClassDevs(NULL, L"USB", NULL,
         DIGCF_ALLCLASSES | DIGCF_PRESENT);
@@ -104,7 +113,7 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus,
                 else
                 {
                     // Take the name of the port
-                    wchar_t pszPortName[20];
+                    wchar_t pszPortName[10];
                     DWORD dwSize = sizeof(pszPortName);
                     DWORD dwType = 0;
                     if ((RegQueryValueEx(hDeviceRegistryKey, L"PortName", NULL, &dwType,
@@ -116,7 +125,8 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus,
                             int nPortNr = _ttoi(pszPortName + 3);
                             if (nPortNr != 0)
                             {
-                                _tcscpy_s(pcCommPort, 20, pszPortName);
+                                _tcscpy_s(pcCommPortTemp, 10, pszPortName);
+                                lstrcatW(pcCommPort, pcCommPortTemp);
                             }
                         }
                     }
@@ -209,7 +219,7 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus,
         
         //Display on Status bar connected port name
         wcscpy_s(msgSTR, L"Device is connected as ");
-        wcscat_s(msgSTR, pcCommPort);
+        wcscat_s(msgSTR, pcCommPortTemp);
         SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)msgSTR);
         return TRUE;
     }

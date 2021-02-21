@@ -18,11 +18,13 @@ COMMTIMEOUTS comtimes;
 DCB dcb;
 HANDLE hCom;
 BOOL isConnected = FALSE; // Is Device connected or NOT?
-BOOL isStarted = 0; //is device started or NOT?
-TCHAR pcCommPort[20] = { 0 };
+BOOL isStarted = FALSE; //is device started or NOT ?
+TCHAR pcCommPort[20] = L"\\\\.\\";
 DWORD dwEventMask;
 OVERLAPPED oRead; LPOVERLAPPED oR=&oRead; //Overlapped for reading
 OVERLAPPED oWrite; LPOVERLAPPED oW = &oWrite; //Overlapped for writing
+//enum USBCommand {DeviceType=0x00, DeviceStart=0x55, DeviceStop=0xAA};
+//enum USBCommand CmdToDevice; enum USBCommand CmdOntoDevice;
 
 //Wave variables
 unsigned __int16 aCalculatedWave[360];// Wave that will be sent to device
@@ -39,20 +41,43 @@ DWORD WINAPI WaitForDataToRead()
    //     ReceiveFromDevice();
   //  if (hCom != NULL) ReceiveFromDevice();
  //   return 0;
-
+    DWORD dwLen;
+    unsigned __int8 aRxBuffer[1000];
     do { ; } while (isConnected != TRUE);
     do
     {
         WaitCommEvent(hCom, &dwEventMask, oR);
         if (WaitForSingleObject(oR->hEvent, INFINITE) == WAIT_OBJECT_0)
         {
-            DWORD dwBytesRead;
-            char szBuf[100];
-            memset(szBuf, 0, sizeof(szBuf));
+   //         DWORD dwBytesRead;
+   //         DWORD dwMaxIncomingBytes = 0;
+   //         char szBuf[100];
+            BOOL bWFret;
+            memset(aRxBuffer, 0, sizeof(aRxBuffer));
             do
             {
-                ReadFile(hCom, szBuf, sizeof(szBuf), &dwBytesRead, oR);
-            } while (dwBytesRead > 0);
+                bWFret=ReadFile(hCom, aRxBuffer, sizeof(aRxBuffer), &dwLen, oR);
+                if (dwLen == 1)//Command Ask received
+                {
+                    if (aRxBuffer[0] == USB_DEVICE_START)
+                    {
+                        SendMessage(hStatus, SB_SETTEXT, 0,
+                                        (LPARAM)L"Device is RUNNING!");
+                        isStarted = TRUE;
+                    }
+                    if (aRxBuffer[0] == USB_DEVICE_STOP)
+                    {
+                        SendMessage(hStatus, SB_SETTEXT, 0,
+                                       (LPARAM)L"Device is STOPPED!");
+                        isStarted = FALSE;
+                    }
+                    if (aRxBuffer[0] == USB_DEVICE_TYPE)
+                    {
+                     ;
+                    }
+                }
+             } while (dwLen > 0);
+             ;
         }
     } while (TRUE);
  //   return 0;
@@ -73,7 +98,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 dcb, aCalculatedWave,oR, oW,
                     dwEventMask, hThread, comtimes); return TRUE;
         case IDC_STARTSTOP: if (isConnected == TRUE)
-            isStarted = onStartStop(hDlg, pcCommPort, hCom, hStatus,
+            onStartStop(hDlg, pcCommPort, hCom, hStatus,
                 isStarted, aCalculatedWave, oW); return TRUE;
         }
         break;
@@ -89,6 +114,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
     HWND hDlg;
     MSG msg;
     BOOL ret;
+
 
     InitCommonControls();
 
