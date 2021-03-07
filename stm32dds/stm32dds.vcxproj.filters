@@ -34,7 +34,7 @@
     <ClCompile Include="fUSBDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="fGeneralActions.cpp">
+    <ClCompile Include="fDialogActions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="fWave.cpp">

@@ -26,6 +26,7 @@ void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus, LPOV
         WriteFile(hCom, aUSBChunkBuffer, 61, NULL, oW);
         while (oW->Internal == STATUS_PENDING); // Just wait for operation completion
     }
+ 
 }
 
 void onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
@@ -33,7 +34,7 @@ void onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
 {
     if (isStarted == FALSE) //start device
     {
-//        SendWave(aCalculatedWave, hCom, hStatus, oW);
+        SendWave(aCalculatedWave, hCom, hStatus, oW);
         SendCommand(USB_DEVICE_START, hCom, oW);
         SetDlgItemTextW(hDlg, IDC_STARTSTOP, L"STOP");
 //        SendMessage(hStatus, SB_SETTEXT, 0,
@@ -225,8 +226,3 @@ BOOL onConnect(HWND hDlg, TCHAR* pcCommPort, HANDLE &hCom, HWND hStatus,
     }
 }
 
-void ReceiveFromDevice(void)
-{
-    int Temp = 0;
-     Temp++;
-}

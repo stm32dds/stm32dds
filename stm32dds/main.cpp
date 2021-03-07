@@ -10,8 +10,11 @@
   "language='*'\"")
 #pragma comment(lib, "ComCtl32.lib")
 
-//Status bar variable
-HWND hStatus;
+//Dialog variables
+HWND hStatus; //Status bar window
+WCHAR szDialogTemp[256]; //used to load resource strings to dialog
+DWORD dwDialogTempLen; // count of loaded chars into string above
+CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
 
 //USB Device variables
 COMMTIMEOUTS comtimes;
@@ -28,12 +31,16 @@ OVERLAPPED oWrite; LPOVERLAPPED oW = &oWrite; //Overlapped for writing
 
 //Wave variables
 unsigned __int16 aCalculatedWave[360];// Wave that will be sent to device
+unsigned __int16 aReturnedWave[360]; // Returned from device wave
+unsigned __int16 uFrqSP = 0xffff; // set point for Frequency
+enum class WaveType { Sine, Square, Triangle, SawTooth, RewSawTooth, Random } eWaveType;
+SamplesPerWave  eSPW;
 
 //Thread variable - used to "Pool" serial port for incoming data
 HANDLE hThread;
 
 //const WCHAR* pcThreadName = L"COM3";
-
+ 
 DWORD WINAPI WaitForDataToRead()
 {
     // The new thread starting here
@@ -73,7 +80,16 @@ DWORD WINAPI WaitForDataToRead()
                     }
                     if (aRxBuffer[0] == USB_DEVICE_TYPE)
                     {
-                     ;
+                        ;
+                    }
+                }
+                if(dwLen == 720)  // received Returned wave
+                {
+                    for (int i = 0, j = 0; i < 360; ++i, j += 2)
+                    {
+                        aReturnedWave[i] =
+                      //      (aRxBuffer[j] << 8) | aRxBuffer[j + 1];
+                            aRxBuffer[j]  | (aRxBuffer[j + 1] << 8);
                     }
                 }
              } while (dwLen > 0);
@@ -93,17 +109,29 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
         case IDCANCEL: onCancel(hDlg); return TRUE; /* call subroutine */
         case IDC_ABOUT: onAbout(hDlg); return TRUE;
-        case IDC_CONNECT: if(isConnected==FALSE)
+        case IDC_CONNECT: if (isConnected == FALSE)
             isConnected = onConnect(hDlg, pcCommPort, hCom, hStatus,
-                dcb, aCalculatedWave,oR, oW,
-                    dwEventMask, hThread, comtimes); return TRUE;
+                dcb, aCalculatedWave, oR, oW,
+                dwEventMask, hThread, comtimes); return TRUE;
         case IDC_STARTSTOP: if (isConnected == TRUE)
             onStartStop(hDlg, pcCommPort, hCom, hStatus,
                 isStarted, aCalculatedWave, oW); return TRUE;
+        case IDC_COMBO_WAVE:if (HIWORD(wParam) == CBN_SELCHANGE)
+            eWaveType = (WaveType)SendMessageW(GetDlgItem(hDlg, IDC_COMBO_WAVE), CB_GETCURSEL, 0, 0);
+            return TRUE;
+        case IDC_COMBO_SPW: if (HIWORD(wParam) == CBN_SELCHANGE)
+            eSPW = onChngSPW(hDlg);
+            refreshFreq(hDlg, uFrqSP, eSPW);
+            return TRUE;
+        case IDC_BUT_FCHG_UP: uFrqSP=onChgFrqUp(hDlg, uFrqSP, eSPW, FALSE); return TRUE;
+        case IDC_BUT_FCHG_UP100: uFrqSP = onChgFrqUp(hDlg, uFrqSP, eSPW, TRUE); return TRUE;
+        case IDC_BUT_FCHG_DOWN: uFrqSP = onChgFrqDown(hDlg, uFrqSP, eSPW, FALSE); return TRUE;
+        case IDC_BUT_FCHG_DOWN100: uFrqSP = onChgFrqDown(hDlg, uFrqSP, eSPW, TRUE); return TRUE;
         }
-        break;
+         break;
     case WM_CLOSE:   onClose(hDlg, hCom, hThread); return TRUE; /* call subroutine */
     case WM_DESTROY: PostQuitMessage(0); return TRUE; /*called by onClose*/
+    case WM_INITDIALOG: return TRUE;
     }
     return FALSE;
 }
@@ -127,6 +155,68 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
         (HMENU)IDC_DIALOG_STATUS, GetModuleHandle(NULL), NULL);
  // write first init message on status bar
     SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
+
+ //   hComboBox_Freq = CreateWindowEx(0, WC_COMBOBOX, NULL,
+   //     WS_VISIBLE | WS_CHILD | CBS_DROPDOWN, 0, 0, 0, 0, hDlg,
+   //     (HMENU)IDC_COMBO_WAVE, GetModuleHandle(NULL), NULL);
+  
+  //  SendMessage(GetDlgItem(hDlg, IDC_COMBO_WAVE), CB_ADDSTRING, 0, (LPARAM)L"Item 1");
+
+ //   SendMessage(GetDlgItem(hDlg, IDC_COMBO_WAVE), CB_ADDSTRING, 0, (LPARAM)L"Item 2");
+
+ //   SendMessage(GetDlgItem(hDlg, IDC_COMBO_WAVE), CB_ADDSTRING, 0, (LPARAM)L"Item 3");
+
+ //   hComboBox_Freq = GetDlgItem(hDlg, IDC_COMBO_WAVE);
+
+// Create  & fill Wave selectin Combo Box
+    DialogBoxW(hInst,                   // application instance
+        MAKEINTRESOURCE(IDC_COMBO_WAVE), // dialog box resource
+        hDlg,                          // owner window
+        DialogProc);                // dialog box window procedure
+    dwDialogTempLen = LoadStringW(hInst,IDS_STR_WAV_SIN,szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV_SQR, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV_TRI, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV_SAW, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV_RSAW, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV_RND, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_SETCURSEL, (WPARAM)eWaveType, 0);
+
+// Create  & fill Samples per Wave (SPW) selectin Combo Box
+    DialogBoxW(hInst, MAKEINTRESOURCE(IDC_COMBO_SPW), hDlg, DialogProc);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV360, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_SPW, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV180, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_SPW, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV90, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_SPW, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV45, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_SPW, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV24, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_SPW, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_SPW, CB_SETCURSEL,0, 0); 
+
+// Create Frequency Edit Box
+    DialogBoxW(hInst, MAKEINTRESOURCE(IDC_EDIT_FRQ), hDlg, DialogProc);
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspFrq(uFrqSP, eSPW), 8);
+    SetDlgItemTextA(hDlg,IDC_EDIT_FRQ,szChDlgTmp);
+
 // Create a new thread which will start at the WaitForDataToRead function
     hThread = CreateThread(NULL, // security attributes ( default if NULL )
         0, // stack SIZE default if 0
@@ -137,7 +227,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 
     ShowWindow(hDlg, nCmdShow);
 
-    while ((ret = GetMessage(&msg, 0, 0, 0)) != 0) {
+     while ((ret = GetMessage(&msg, 0, 0, 0)) != 0) {
         if (ret == -1)
             return -1;
 

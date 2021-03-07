@@ -146,7 +146,7 @@
     <ResourceCompile Include="stm32dds.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="fGeneralActions.cpp" />
+    <ClCompile Include="fDialogActions.cpp" />
     <ClCompile Include="fWave.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="fUSBDevice.cpp" />
