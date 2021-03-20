@@ -32,9 +32,11 @@ OVERLAPPED oWrite; LPOVERLAPPED oW = &oWrite; //Overlapped for writing
 //Wave variables
 unsigned __int16 aCalculatedWave[360];// Wave that will be sent to device
 unsigned __int16 aReturnedWave[360]; // Returned from device wave
-unsigned __int16 uFrqSP = 0xffff; // set point for Frequency
-enum class WaveType { Sine, Square, Triangle, SawTooth, RewSawTooth, Random } eWaveType;
-SamplesPerWave  eSPW;
+unsigned __int16 uFrqSP = 100; // set point for Frequency
+unsigned __int16 VppSP = 0x7FFF; // set point for Amplitude
+unsigned __int8 uOffsSP = 0x1F; // set point for Offset
+unsigned __int8 uPwmSP = 50; // set point for PWM on SQUARE Wave
+SamplesPerWave  eSPW; AmpPower eAmpPow; WaveType eWaveType;
 
 //Thread variable - used to "Pool" serial port for incoming data
 HANDLE hThread;
@@ -107,6 +109,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
+        case IDOK:CreateWave(aCalculatedWave,eWaveType, VppSP, uPwmSP); return TRUE;
         case IDCANCEL: onCancel(hDlg); return TRUE; /* call subroutine */
         case IDC_ABOUT: onAbout(hDlg); return TRUE;
         case IDC_CONNECT: if (isConnected == FALSE)
@@ -115,7 +118,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 dwEventMask, hThread, comtimes); return TRUE;
         case IDC_STARTSTOP: if (isConnected == TRUE)
             onStartStop(hDlg, pcCommPort, hCom, hStatus,
-                isStarted, aCalculatedWave, oW); return TRUE;
+                isStarted, aCalculatedWave, oW,  eWaveType, VppSP, uPwmSP); return TRUE;
         case IDC_COMBO_WAVE:if (HIWORD(wParam) == CBN_SELCHANGE)
             eWaveType = (WaveType)SendMessageW(GetDlgItem(hDlg, IDC_COMBO_WAVE), CB_GETCURSEL, 0, 0);
             return TRUE;
@@ -127,8 +130,27 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case IDC_BUT_FCHG_UP100: uFrqSP = onChgFrqUp(hDlg, uFrqSP, eSPW, TRUE); return TRUE;
         case IDC_BUT_FCHG_DOWN: uFrqSP = onChgFrqDown(hDlg, uFrqSP, eSPW, FALSE); return TRUE;
         case IDC_BUT_FCHG_DOWN100: uFrqSP = onChgFrqDown(hDlg, uFrqSP, eSPW, TRUE); return TRUE;
+        case IDC_RADIO_X20: eAmpPow = AmpPower::x2_0;
+            refreshOffs(hDlg, uOffsSP, eAmpPow);
+            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
+        case IDC_RADIO_X15: eAmpPow = AmpPower::x1_5; 
+            refreshOffs(hDlg, uOffsSP, eAmpPow);
+            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
+        case IDC_RADIO_X10: eAmpPow = AmpPower::x1_0;
+            refreshOffs(hDlg, uOffsSP, eAmpPow);
+            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
+        case IDC_RADIO_X05: eAmpPow = AmpPower::x0_5;
+            refreshOffs(hDlg, uOffsSP, eAmpPow);
+            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
+        case IDC_BUT_OCHG_UP: uOffsSP = onChgOffsUp(hDlg, uOffsSP, eAmpPow); return TRUE;
+        case IDC_BUT_OCHG_DOWN: uOffsSP = onChgOffsDown(hDlg, uOffsSP, eAmpPow); return TRUE;
+        case IDC_BUT_VCHG_UP: VppSP = onChgVppUp(hDlg, VppSP, eAmpPow, FALSE); return TRUE;
+        case IDC_BUT_VCHG_UP100: VppSP = onChgVppUp(hDlg, VppSP, eAmpPow, TRUE); return TRUE;
+        case IDC_BUT_VCHG_DOWN: VppSP = onChgVppDown(hDlg, VppSP, eAmpPow, FALSE); return TRUE;
+        case IDC_BUT_VCHG_DOWN100: VppSP = onChgVppDown(hDlg, VppSP, eAmpPow, TRUE); return TRUE;
         }
          break;
+    case WM_NOTIFY:uPwmSP = fnGetPwm(hDlg); return TRUE;
     case WM_CLOSE:   onClose(hDlg, hCom, hThread); return TRUE; /* call subroutine */
     case WM_DESTROY: PostQuitMessage(0); return TRUE; /*called by onClose*/
     case WM_INITDIALOG: return TRUE;
@@ -191,6 +213,10 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
     dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV_RND, szDialogTemp, 256);
     SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
         dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+    dwDialogTempLen = LoadStringW(hInst, IDS_STR_WAV_CALIB, szDialogTemp, 256);
+    SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_ADDSTRING,
+        dwDialogTempLen, (LPARAM)(LPCSTR)szDialogTemp);
+
     SendDlgItemMessageW(hDlg, IDC_COMBO_WAVE, CB_SETCURSEL, (WPARAM)eWaveType, 0);
 
 // Create  & fill Samples per Wave (SPW) selectin Combo Box
@@ -216,6 +242,22 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
     DialogBoxW(hInst, MAKEINTRESOURCE(IDC_EDIT_FRQ), hDlg, DialogProc);
     _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspFrq(uFrqSP, eSPW), 8);
     SetDlgItemTextA(hDlg,IDC_EDIT_FRQ,szChDlgTmp);
+
+//Select x2 radio button as default
+    SendDlgItemMessageW(hDlg,IDC_RADIO_X20, BM_SETCHECK, BST_CHECKED, 0);
+
+// Create Offset Edit Box
+    DialogBoxW(hInst, MAKEINTRESOURCE(IDC_EDIT_OFFS), hDlg, DialogProc);
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspOffs(uOffsSP, eAmpPow), 3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_OFFS, szChDlgTmp);
+
+//Initialise PWM dialog
+    SendDlgItemMessageW(hDlg, IDC_SPIN_PWM, UDM_SETPOS, 0, uPwmSP);
+
+// Create Amplitude (Vpp) Edit Box
+    DialogBoxW(hInst, MAKEINTRESOURCE(IDC_EDIT_VPP), hDlg, DialogProc);
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspVpp(VppSP, eAmpPow), 3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_VPP, szChDlgTmp);
 
 // Create a new thread which will start at the WaitForDataToRead function
     hThread = CreateThread(NULL, // security attributes ( default if NULL )

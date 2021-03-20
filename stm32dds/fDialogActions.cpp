@@ -54,6 +54,22 @@ void refreshFreq(HWND hDlg, unsigned __int16 uFrqSP, SamplesPerWave eSPW)
     SetDlgItemTextA(hDlg, IDC_EDIT_FRQ, szChDlgTmp);
 }
 
+// Just refresh Offset edit box based on current parameters
+void refreshOffs(HWND hDlg, unsigned __int8 uOffsSP, AmpPower eAmpPow)
+{
+    CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspOffs(uOffsSP, eAmpPow),3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_OFFS, szChDlgTmp);
+}
+
+// Just refresh Amplitude (Vpp) edit box based on current parameters
+void refreshVpp(HWND hDlg, unsigned __int16 VppSP, AmpPower eAmpPow)
+{
+    CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspVpp(VppSP, eAmpPow), 3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_VPP, szChDlgTmp);
+}
+
 //Increments Frequency SP
 unsigned __int16  onChgFrqUp(HWND hDlg, unsigned __int16 uFrqSP, SamplesPerWave eSPW, BOOL byStep)
 {
@@ -92,4 +108,56 @@ unsigned __int16  onChgFrqDown(HWND hDlg, unsigned __int16 uFrqSP, SamplesPerWav
     _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspFrq(uFrqSP, eSPW), 8);
     SetDlgItemTextA(hDlg, IDC_EDIT_FRQ, szChDlgTmp);
     return uFrqSP;
+}
+
+//Increments Offset SP
+unsigned __int8  onChgOffsUp(HWND hDlg, unsigned __int8 uOffsSP, AmpPower eAmpPow)
+{
+    CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
+    if (uOffsSP < 0x3E) uOffsSP = uOffsSP + 1;
+    else uOffsSP = 0x3E;
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspOffs(uOffsSP, eAmpPow), 3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_OFFS, szChDlgTmp);
+    return uOffsSP;
+}
+
+//Decrements Offset SP
+unsigned __int8  onChgOffsDown(HWND hDlg, unsigned __int8 uOffsSP, AmpPower eAmpPow)
+{
+    CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
+    if (uOffsSP > 0x00) uOffsSP = uOffsSP - 1;
+    else uOffsSP = 0x00;
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspOffs(uOffsSP, eAmpPow), 3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_OFFS, szChDlgTmp);
+    return uOffsSP;
+}
+
+//Used to get PWM setpoint "on the fly"
+unsigned __int8 fnGetPwm(HWND hDlg)
+{
+   return (unsigned __int8)SendDlgItemMessageW(hDlg, IDC_SPIN_PWM, UDM_GETPOS, 0, 0);
+}
+
+//Increments Vpp SP
+unsigned __int16 onChgVppUp(HWND hDlg, unsigned __int16 VppSP, AmpPower eAmpPow, BOOL byStep)
+{
+    CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
+    if (byStep == TRUE) VppSP = VppSP + 0X03FF;
+    else VppSP = VppSP + 0x07F;
+    if (VppSP > 0x7FFF) VppSP = 0x7FFF; // maximal value for Vpp amplitude
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspVpp(VppSP, eAmpPow), 3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_VPP, szChDlgTmp);
+    return VppSP;
+}
+
+//Decrements Vpp SP
+unsigned __int16 onChgVppDown(HWND hDlg, unsigned __int16 VppSP, AmpPower eAmpPow, BOOL byStep)
+{
+    CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
+    if (byStep == TRUE) VppSP = VppSP - 0X03FF;
+    else VppSP = VppSP - 0x007F;
+    if ((VppSP < 0x00FF)||(VppSP > 0x7FFF)) VppSP = 0x00FF; // minimal value for Vpp amplitude
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspVpp(VppSP, eAmpPow), 3);
+    SetDlgItemTextA(hDlg, IDC_EDIT_VPP, szChDlgTmp);
+    return VppSP;
 }

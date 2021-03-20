@@ -6,11 +6,12 @@ void SendCommand(unsigned __int8 CmdToDevice, HANDLE hCom, LPOVERLAPPED oW)
     while (oW->Internal == STATUS_PENDING);
 }
 
-void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus, LPOVERLAPPED oW)
+void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus,
+    LPOVERLAPPED oW, WaveType eWaveType, unsigned __int16 VppSP, unsigned __int8 uPwmSP)
 {
     unsigned __int8 aOutputBuffer[720];// Data that will sent to device as BYTE USB stream
     unsigned __int8 aUSBChunkBuffer[61];//Chunk of Data to form BYTE USB packet
-    CreateWave(aCalculatedWave);
+    CreateWave(aCalculatedWave, eWaveType, VppSP, uPwmSP);
     // 16 bit aCalculatedWaveto to 8 bit aOutputBuffer
     for (int i = 0, j = 0; i < 720; i += 2, ++j)
     {
@@ -30,11 +31,12 @@ void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus, LPOV
 }
 
 void onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom,
-    HWND hStatus, BOOL isStarted, unsigned __int16* aCalculatedWave, LPOVERLAPPED oW)
+    HWND hStatus, BOOL isStarted, unsigned __int16* aCalculatedWave,
+    LPOVERLAPPED oW, WaveType eWaveType, unsigned __int16 VppSP, unsigned __int8 uPwmSP)
 {
     if (isStarted == FALSE) //start device
     {
-        SendWave(aCalculatedWave, hCom, hStatus, oW);
+        SendWave(aCalculatedWave, hCom, hStatus, oW, eWaveType, VppSP, uPwmSP);
         SendCommand(USB_DEVICE_START, hCom, oW);
         SetDlgItemTextW(hDlg, IDC_STARTSTOP, L"STOP");
 //        SendMessage(hStatus, SB_SETTEXT, 0,
