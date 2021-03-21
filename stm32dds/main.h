@@ -30,6 +30,8 @@ extern void onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom, HWND hStatus,
 	LPOVERLAPPED oW, WaveType eWaveType, unsigned __int16 VppSP, unsigned __int8 uPwmSP);
 extern void CreateWave(unsigned __int16* aCalculatedWave,
 	WaveType eWaveType, unsigned __int16 VppSP, unsigned __int8 uPwmSP);
+extern void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
+	BOOL isStarted);
 extern void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus,
 	LPOVERLAPPED oW, WaveType eWaveType, unsigned __int16 VppSP, unsigned __int8 uPwmSP);
 extern double CalcWavDspFrq(unsigned __int16 uFrqSP, SamplesPerWave  eSPW);

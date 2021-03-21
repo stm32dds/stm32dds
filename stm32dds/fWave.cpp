@@ -101,3 +101,38 @@ double CalcWavDspVpp(unsigned __int16 VppSP, AmpPower eAmpPow)
     CalcWVpp = (3.3 / 0x7FFF*vdiv) * VppSP;
     return CalcWVpp;
 }
+
+void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW, BOOL isStarted)
+{
+    const int x0 = 18;
+    const int y0 = 250;
+    HDC hdc;
+    hdc = GetDC(hDlg);// Device context
+    HGDIOBJ defPen = NULL;//default Pen
+    HGDIOBJ defBrush = NULL;
+    defPen = SelectObject(hdc, GetStockObject(DC_PEN));//Store default pen
+    defBrush = SelectObject(hdc, GetStockObject(DC_BRUSH));
+ //   DWORD defBackGround = GetSysColor(COLOR_BACKGROUND);
+    SetDCPenColor(hdc, 0x00E0E0E0);
+    SetDCBrushColor(hdc, 0x00E0E0E0);
+    Rectangle(hdc,x0, y0 - 0x80, x0 + 720, y0 + 0x80);
+    SetDCPenColor(hdc, 0x00000000);
+    //Draw the Axes
+    MoveToEx(hdc, x0, y0-0x80, (LPPOINT)NULL);
+    LineTo(hdc, x0+720, y0 - 0x80); //Maximum of Amplitude
+    MoveToEx(hdc, x0, y0, (LPPOINT)NULL);
+    LineTo(hdc, x0+720, y0);//Middle of Amplitude
+    MoveToEx(hdc, x0, y0+0x80, (LPPOINT)NULL);
+    LineTo(hdc, x0+720, y0+0x80); //Minimum of amplitude
+    //Change pen color to red or green
+    if (isStarted) SetDCPenColor(hdc, 0x0000FF00);
+    else SetDCPenColor(hdc, 0x000000FF);
+    //Draw the Wave
+    MoveToEx(hdc, x0, ((0xFFFF - aWaveToDraw[0]) / 0xFF + 122), (LPPOINT)NULL);
+    for (int i = 0; i < 360; i = i + 1)
+        LineTo(hdc,i+x0, (0xFFFF-aWaveToDraw[i])/0xFF+122);
+    for (int i = 0; i < 360; i = i + 1)
+        LineTo(hdc, 360 + i + x0, (0xFFFF - aWaveToDraw[i]) / 0xFF + 122);
+
+    ReleaseDC(hDlg, hdc);
+}

@@ -109,7 +109,8 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
-        case IDOK:CreateWave(aCalculatedWave,eWaveType, VppSP, uPwmSP); return TRUE;
+        case IDOK:CreateWave(aCalculatedWave,eWaveType, VppSP, uPwmSP); 
+            DrawWave(hDlg, aCalculatedWave, eSPW,isStarted); return TRUE;
         case IDCANCEL: onCancel(hDlg); return TRUE; /* call subroutine */
         case IDC_ABOUT: onAbout(hDlg); return TRUE;
         case IDC_CONNECT: if (isConnected == FALSE)
