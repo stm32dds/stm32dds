@@ -102,8 +102,34 @@ double CalcWavDspVpp(unsigned __int16 VppSP, AmpPower eAmpPow)
     return CalcWVpp;
 }
 
-void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW, BOOL isStarted)
+void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
+    BOOL isStarted, unsigned __int16 VppSP, unsigned __int8 uOffsSP, AmpPower eAmpPow)
 {
+    CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
+    //calculate Vmin, Vmax, Voffs to display on wave scope
+    double dispVmin, dispVmax, dispVoffs;
+    dispVoffs = CalcWavDspOffs(uOffsSP, eAmpPow);
+    dispVmax = dispVoffs + CalcWavDspVpp(VppSP, eAmpPow)/2;
+    dispVmin = dispVoffs - CalcWavDspVpp(VppSP, eAmpPow) / 2;
+    //Find minimal and maximal values of wave array
+    unsigned __int16 AmpMin, AmpMax=0;
+    for (int i = 0; i < 360; i = i + 1)
+        if (aWaveToDraw[i] > AmpMax) AmpMax = aWaveToDraw[i];
+    AmpMin = AmpMax;
+    for (int i = 0; i < 360; i = i + 1)
+        if (aWaveToDraw[i] < AmpMin) AmpMin = aWaveToDraw[i];
+    if (AmpMin == 0) AmpMin = 0xFF;  
+    //incremental step by SPW decision
+    int sadd = 1;
+    switch (eSPW)
+    {
+    case SamplesPerWave::SPW360: sadd = 1; break;
+    case SamplesPerWave::SPW180: sadd = 2; break;
+    case SamplesPerWave::SPW90: sadd = 4; break;
+    case SamplesPerWave::SPW45: sadd = 8; break;
+    case SamplesPerWave::SPW24: sadd = 15; break;
+    }
+    //Begin of graphical operations
     const int x0 = 18;
     const int y0 = 250;
     HDC hdc;
@@ -112,27 +138,39 @@ void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW, BOO
     HGDIOBJ defBrush = NULL;
     defPen = SelectObject(hdc, GetStockObject(DC_PEN));//Store default pen
     defBrush = SelectObject(hdc, GetStockObject(DC_BRUSH));
- //   DWORD defBackGround = GetSysColor(COLOR_BACKGROUND);
     SetDCPenColor(hdc, 0x00E0E0E0);
     SetDCBrushColor(hdc, 0x00E0E0E0);
-    Rectangle(hdc,x0, y0 - 0x80, x0 + 720, y0 + 0x80);
+    Rectangle(hdc,x0, y0 - 0x80, x0 + 720, y0 + 0x82);
     SetDCPenColor(hdc, 0x00000000);
     //Draw the Axes
-    MoveToEx(hdc, x0, y0-0x80, (LPPOINT)NULL);
-    LineTo(hdc, x0+720, y0 - 0x80); //Maximum of Amplitude
+    //Maximum of Amplitude
+    MoveToEx(hdc, x0, ((0xFFFF - AmpMax) / 0xFF + 122), (LPPOINT)NULL);
+    LineTo(hdc, x0 + 540, ((0xFFFF - AmpMax) / 0xFF + 122));
+    LineTo(hdc, 668, 122);
+    //Middle of Amplitude
     MoveToEx(hdc, x0, y0, (LPPOINT)NULL);
-    LineTo(hdc, x0+720, y0);//Middle of Amplitude
-    MoveToEx(hdc, x0, y0+0x80, (LPPOINT)NULL);
-    LineTo(hdc, x0+720, y0+0x80); //Minimum of amplitude
+    LineTo(hdc, x0+720, y0);
+    //Minimum of amplitude
+    MoveToEx(hdc, x0, ((0xFFFF - AmpMin) / 0xFF + 122), (LPPOINT)NULL);
+    LineTo(hdc, x0 + 540, ((0xFFFF - AmpMin) / 0xFF + 122));
+    LineTo(hdc, 668, 378);
     //Change pen color to red or green
     if (isStarted) SetDCPenColor(hdc, 0x0000FF00);
     else SetDCPenColor(hdc, 0x000000FF);
     //Draw the Wave
     MoveToEx(hdc, x0, ((0xFFFF - aWaveToDraw[0]) / 0xFF + 122), (LPPOINT)NULL);
-    for (int i = 0; i < 360; i = i + 1)
+    for (int i = 0; i < 360; i = i + sadd)
         LineTo(hdc,i+x0, (0xFFFF-aWaveToDraw[i])/0xFF+122);
-    for (int i = 0; i < 360; i = i + 1)
+    for (int i = 0; i < 360; i = i + sadd)
         LineTo(hdc, 360 + i + x0, (0xFFFF - aWaveToDraw[i]) / 0xFF + 122);
-
+    // Display maximal ampliude
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), dispVmax, 3);
+    SetDlgItemTextA(hDlg, IDC_DISP_VMAX, szChDlgTmp);
+    // Display offset level
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), dispVoffs, 3);
+    SetDlgItemTextA(hDlg, IDC_DISP_VOFS, szChDlgTmp);
+    // Display minimal ampliude
+    _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), dispVmin, 3);
+    SetDlgItemTextA(hDlg, IDC_DISP_VMIN, szChDlgTmp);
     ReleaseDC(hDlg, hdc);
 }

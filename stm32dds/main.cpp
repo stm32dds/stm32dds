@@ -109,9 +109,6 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
-        case IDOK:CreateWave(aCalculatedWave,eWaveType, VppSP, uPwmSP); 
-            DrawWave(hDlg, aCalculatedWave, eSPW,isStarted); return TRUE;
-        case IDCANCEL: onCancel(hDlg); return TRUE; /* call subroutine */
         case IDC_ABOUT: onAbout(hDlg); return TRUE;
         case IDC_CONNECT: if (isConnected == FALSE)
             isConnected = onConnect(hDlg, pcCommPort, hCom, hStatus,
@@ -122,36 +119,52 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 isStarted, aCalculatedWave, oW,  eWaveType, VppSP, uPwmSP); return TRUE;
         case IDC_COMBO_WAVE:if (HIWORD(wParam) == CBN_SELCHANGE)
             eWaveType = (WaveType)SendMessageW(GetDlgItem(hDlg, IDC_COMBO_WAVE), CB_GETCURSEL, 0, 0);
-            return TRUE;
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
         case IDC_COMBO_SPW: if (HIWORD(wParam) == CBN_SELCHANGE)
-            eSPW = onChngSPW(hDlg);
-            refreshFreq(hDlg, uFrqSP, eSPW);
-            return TRUE;
+            eSPW = onChngSPW(hDlg); refreshFreq(hDlg, uFrqSP, eSPW);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
         case IDC_BUT_FCHG_UP: uFrqSP=onChgFrqUp(hDlg, uFrqSP, eSPW, FALSE); return TRUE;
         case IDC_BUT_FCHG_UP100: uFrqSP = onChgFrqUp(hDlg, uFrqSP, eSPW, TRUE); return TRUE;
         case IDC_BUT_FCHG_DOWN: uFrqSP = onChgFrqDown(hDlg, uFrqSP, eSPW, FALSE); return TRUE;
         case IDC_BUT_FCHG_DOWN100: uFrqSP = onChgFrqDown(hDlg, uFrqSP, eSPW, TRUE); return TRUE;
         case IDC_RADIO_X20: eAmpPow = AmpPower::x2_0;
-            refreshOffs(hDlg, uOffsSP, eAmpPow);
-            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
+            refreshOffs(hDlg, uOffsSP, eAmpPow); refreshVpp(hDlg, VppSP, eAmpPow);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
         case IDC_RADIO_X15: eAmpPow = AmpPower::x1_5; 
-            refreshOffs(hDlg, uOffsSP, eAmpPow);
-            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
+            refreshOffs(hDlg, uOffsSP, eAmpPow); refreshVpp(hDlg, VppSP, eAmpPow);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
         case IDC_RADIO_X10: eAmpPow = AmpPower::x1_0;
-            refreshOffs(hDlg, uOffsSP, eAmpPow);
-            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
+            refreshOffs(hDlg, uOffsSP, eAmpPow); refreshVpp(hDlg, VppSP, eAmpPow);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
         case IDC_RADIO_X05: eAmpPow = AmpPower::x0_5;
-            refreshOffs(hDlg, uOffsSP, eAmpPow);
-            refreshVpp(hDlg, VppSP, eAmpPow); return TRUE;
-        case IDC_BUT_OCHG_UP: uOffsSP = onChgOffsUp(hDlg, uOffsSP, eAmpPow); return TRUE;
-        case IDC_BUT_OCHG_DOWN: uOffsSP = onChgOffsDown(hDlg, uOffsSP, eAmpPow); return TRUE;
-        case IDC_BUT_VCHG_UP: VppSP = onChgVppUp(hDlg, VppSP, eAmpPow, FALSE); return TRUE;
-        case IDC_BUT_VCHG_UP100: VppSP = onChgVppUp(hDlg, VppSP, eAmpPow, TRUE); return TRUE;
-        case IDC_BUT_VCHG_DOWN: VppSP = onChgVppDown(hDlg, VppSP, eAmpPow, FALSE); return TRUE;
-        case IDC_BUT_VCHG_DOWN100: VppSP = onChgVppDown(hDlg, VppSP, eAmpPow, TRUE); return TRUE;
+            refreshOffs(hDlg, uOffsSP, eAmpPow); refreshVpp(hDlg, VppSP, eAmpPow);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
+        case IDC_BUT_OCHG_UP: uOffsSP = onChgOffsUp(hDlg, uOffsSP, eAmpPow);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
+        case IDC_BUT_OCHG_DOWN: uOffsSP = onChgOffsDown(hDlg, uOffsSP, eAmpPow);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
+        case IDC_BUT_VCHG_UP: VppSP = onChgVppUp(hDlg, VppSP, eAmpPow, FALSE);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
+        case IDC_BUT_VCHG_UP100: VppSP = onChgVppUp(hDlg, VppSP, eAmpPow, TRUE);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
+        case IDC_BUT_VCHG_DOWN: VppSP = onChgVppDown(hDlg, VppSP, eAmpPow, FALSE);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
+        case IDC_BUT_VCHG_DOWN100: VppSP = onChgVppDown(hDlg, VppSP, eAmpPow, TRUE);
+            SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0); return TRUE;
         }
          break;
-    case WM_NOTIFY:uPwmSP = fnGetPwm(hDlg); return TRUE;
+    case WM_NOTIFY:
+        switch (((LPNMHDR)lParam)->code)
+        {
+        case UDN_DELTAPOS:
+            if (((LPNMHDR)lParam)->idFrom == IDC_SPIN_PWM)
+            {
+                uPwmSP = fnGetPwm(hDlg);
+                SendMessage(hDlg, WM_DSP_PRM_CHG, 0, 0);
+            }
+        } return TRUE;
+    case WM_DSP_PRM_CHG: CreateWave(aCalculatedWave, eWaveType, VppSP, uPwmSP);
+        DrawWave(hDlg, aCalculatedWave, eSPW, isStarted, VppSP, uOffsSP, eAmpPow); return TRUE;
     case WM_CLOSE:   onClose(hDlg, hCom, hThread); return TRUE; /* call subroutine */
     case WM_DESTROY: PostQuitMessage(0); return TRUE; /*called by onClose*/
     case WM_INITDIALOG: return TRUE;
@@ -260,6 +273,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
     _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), CalcWavDspVpp(VppSP, eAmpPow), 3);
     SetDlgItemTextA(hDlg, IDC_EDIT_VPP, szChDlgTmp);
 
+
 // Create a new thread which will start at the WaitForDataToRead function
     hThread = CreateThread(NULL, // security attributes ( default if NULL )
         0, // stack SIZE default if 0
@@ -269,6 +283,10 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
         NULL); // thread ID
 
     ShowWindow(hDlg, nCmdShow);
+    //Draw default Wave
+    CreateWave(aCalculatedWave, eWaveType, VppSP, uPwmSP);
+    DrawWave(hDlg, aCalculatedWave, eSPW, isStarted, VppSP, uOffsSP, eAmpPow);
+    UpdateWindow(hDlg);
 
      while ((ret = GetMessage(&msg, 0, 0, 0)) != 0) {
         if (ret == -1)

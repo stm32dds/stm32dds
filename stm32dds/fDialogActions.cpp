@@ -1,10 +1,5 @@
 #include "main.h"
 
-void onCancel(HWND hDlg)
-{
-    SendMessage(hDlg, WM_CLOSE, 0, 0);
-}
-
 void onClose(HWND hDlg, HANDLE hCom, HANDLE hThread)
 {
     CloseHandle(hThread); // Close reading thread

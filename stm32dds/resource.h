@@ -40,12 +40,17 @@
 #define IDC_BUT_VCHG_DOWN100            1026
 #define IDC_BUT_FCHG_DOWN7              1027
 #define IDC_BUT_VCHG_DOWN               1027
+#define IDC_DISP_VMAX                   1028
 #define IDC_EDIT_PWM                    1029
+#define IDC_DISP_VOFS                   1030
 #define IDC_SPIN_PWM                    1031
 #define IDC_RADIO_X20                   1032
 #define IDC_RADIO_X15                   1033
 #define IDC_RADIO_X10                   1034
 #define IDC_RADIO_X05                   1035
+#define IDC_EDIT_VPP4                   1036
+#define IDC_DISP_VMIN                   1036
+#define WM_DSP_PRM_CHG                  WM_USER
 
 // Next default values for new objects
 // 
