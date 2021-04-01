@@ -15,12 +15,14 @@
 #define USB_DEVICE_STOP		0xAA
 #define USB_DEVICE_TYPE		0x00
 
+#define WM_DSP_PRM_CHG WM_USER
+
 enum class SamplesPerWave { SPW360, SPW180, SPW90, SPW45, SPW24 };
 enum class AmpPower { x2_0, x1_5, x1_0, x0_5 };
 enum class WaveType { Sine, Square, Triangle, SawTooth, RewSawTooth, Random, Zero };
 
 extern void onClose(HWND hDlg, HANDLE hCom, HANDLE hThread);
-extern void onAbout(HWND hDlg);
+extern void onAbout(HWND hDlg, HINSTANCE hInst);
 extern BOOL onConnect(HWND hDlg, TCHAR *pcCommPort, HANDLE &hCom, HWND hStatus,DCB dcb,
 	unsigned __int16* aCalculatedWave, LPOVERLAPPED oR, LPOVERLAPPED oW,
 		DWORD dwEventMask, HANDLE hThread, COMMTIMEOUTS comtimes);
@@ -30,7 +32,8 @@ extern void onStartStop(HWND hDlg, TCHAR* pcCommPort, HANDLE hCom, HWND hStatus,
 extern void CreateWave(unsigned __int16* aCalculatedWave,
 	WaveType eWaveType, unsigned __int16 VppSP, unsigned __int8 uPwmSP);
 extern void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
-	BOOL isStarted, unsigned __int16 VppSP, unsigned __int8 uOffsSP, AmpPower eAmpPow);
+	BOOL isStarted, unsigned __int16 VppSP, unsigned __int8 uOffsSP, AmpPower eAmpPow,
+	unsigned __int16 uFrqSP);
 extern void SendWave(unsigned __int16* aCalculatedWave, HANDLE hCom, HWND hStatus,
 	LPOVERLAPPED oW, WaveType eWaveType, unsigned __int16 VppSP, unsigned __int8 uPwmSP);
 extern double CalcWavDspFrq(unsigned __int16 uFrqSP, SamplesPerWave  eSPW);

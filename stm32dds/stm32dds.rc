@@ -100,16 +100,21 @@ BEGIN
     EDITTEXT        IDC_DISP_VMAX,334,61,36,12,ES_RIGHT | ES_AUTOHSCROLL | ES_READONLY | ES_NUMBER
     EDITTEXT        IDC_DISP_VOFS,334,120,36,12,ES_RIGHT | ES_AUTOHSCROLL | ES_READONLY | ES_NUMBER
     EDITTEXT        IDC_DISP_VMIN,334,177,36,12,ES_RIGHT | ES_AUTOHSCROLL | ES_READONLY | ES_NUMBER
+    EDITTEXT        IDC_DISP_PERIOD,189,120,36,12,ES_CENTER | ES_AUTOHSCROLL | ES_READONLY | ES_NUMBER
 END
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "About WindowsProject1"
+IDD_ABOUTBOX DIALOGEX 0, 0, 201, 64
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About"
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
-    ICON            IDS_STR_WAV_SQR,IDC_STATIC,14,14,20,20
-    LTEXT           "WindowsProject1, Version 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
-    LTEXT           "Copyright (c) 2021",IDC_STATIC,42,26,114,8
+    LTEXT           "Copyright FREE (c) 2021, Ivan Ivanov, Ruse, Bulgaria",IDC_STATIC,7,47,178,10
+    ICON            IDI_ICON,IDC_STATIC,18,21,20,20
+    CONTROL         "<a>www.stm32dds.tk</a>",IDC_SYSLINK1,"SysLink",0x0,66,7,75,9
+    LTEXT           "Control program for STM32DDS,",IDC_STATIC,45,23,127,8
+    LTEXT           "signal generators models Lite and Basic",IDC_STATIC,45,31,140,8
+    LTEXT           "Version:",IDC_STATIC,85,39,28,8
+    LTEXT           "Version:",IDC_VERSION,115,39,41,8
 END
 
 
@@ -132,9 +137,9 @@ BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 163
+        RIGHTMARGIN, 194
         TOPMARGIN, 7
-        BOTTOMMARGIN, 55
+        BOTTOMMARGIN, 57
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -154,6 +159,16 @@ IDD_ABOUTBOX AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON                ICON                    "icon.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -7,6 +7,7 @@
 #define IDD_ABOUTBOX                    103
 #define IDS_STR_WAV_SIN                 106
 #define IDS_STR_WAV_SQR                 107
+#define IDI_ICON                        107
 #define IDS_STR_WAV_TRI                 108
 #define IDS_STR_WAV_SAW                 109
 #define IDS_STR_WAV_RSAW                110
@@ -46,19 +47,22 @@
 #define IDC_SPIN_PWM                    1031
 #define IDC_RADIO_X20                   1032
 #define IDC_RADIO_X15                   1033
+#define IDC_TEMP                        1033
 #define IDC_RADIO_X10                   1034
+#define IDC_SYSLINK1                    1034
 #define IDC_RADIO_X05                   1035
 #define IDC_EDIT_VPP4                   1036
 #define IDC_DISP_VMIN                   1036
-#define WM_DSP_PRM_CHG                  WM_USER
+#define IDC_DISP_PERIOD                 1037
+#define IDC_VERSION                     1038
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        107
+#define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1033
+#define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

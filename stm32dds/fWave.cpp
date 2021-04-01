@@ -103,22 +103,23 @@ double CalcWavDspVpp(unsigned __int16 VppSP, AmpPower eAmpPow)
 }
 
 void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
-    BOOL isStarted, unsigned __int16 VppSP, unsigned __int8 uOffsSP, AmpPower eAmpPow)
+    BOOL isStarted, unsigned __int16 VppSP, unsigned __int8 uOffsSP, AmpPower eAmpPow,
+    unsigned __int16 uFrqSP)
 {
     CHAR szChDlgTmp[_CVTBUFSIZE]; // for converted double numbers
     //calculate Vmin, Vmax, Voffs to display on wave scope
     double dispVmin, dispVmax, dispVoffs;
     dispVoffs = CalcWavDspOffs(uOffsSP, eAmpPow);
-    dispVmax = dispVoffs + CalcWavDspVpp(VppSP, eAmpPow)/2;
+    dispVmax = dispVoffs + CalcWavDspVpp(VppSP, eAmpPow) / 2;
     dispVmin = dispVoffs - CalcWavDspVpp(VppSP, eAmpPow) / 2;
     //Find minimal and maximal values of wave array
-    unsigned __int16 AmpMin, AmpMax=0;
+    unsigned __int16 AmpMin, AmpMax = 0;
     for (int i = 0; i < 360; i = i + 1)
         if (aWaveToDraw[i] > AmpMax) AmpMax = aWaveToDraw[i];
     AmpMin = AmpMax;
     for (int i = 0; i < 360; i = i + 1)
         if (aWaveToDraw[i] < AmpMin) AmpMin = aWaveToDraw[i];
-    if (AmpMin == 0) AmpMin = 0xFF;  
+    if (AmpMin == 0) AmpMin = 0xFF;
     //incremental step by SPW decision
     int sadd = 1;
     switch (eSPW)
@@ -140,7 +141,7 @@ void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
     defBrush = SelectObject(hdc, GetStockObject(DC_BRUSH));
     SetDCPenColor(hdc, 0x00E0E0E0);
     SetDCBrushColor(hdc, 0x00E0E0E0);
-    Rectangle(hdc,x0, y0 - 0x80, x0 + 720, y0 + 0x82);
+    Rectangle(hdc, x0, y0 - 0x80, x0 + 720, y0 + 0x82);
     SetDCPenColor(hdc, 0x00000000);
     //Draw the Axes
     //Maximum of Amplitude
@@ -149,7 +150,7 @@ void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
     LineTo(hdc, 668, 122);
     //Middle of Amplitude
     MoveToEx(hdc, x0, y0, (LPPOINT)NULL);
-    LineTo(hdc, x0+720, y0);
+    LineTo(hdc, x0 + 720, y0);
     //Minimum of amplitude
     MoveToEx(hdc, x0, ((0xFFFF - AmpMin) / 0xFF + 122), (LPPOINT)NULL);
     LineTo(hdc, x0 + 540, ((0xFFFF - AmpMin) / 0xFF + 122));
@@ -160,7 +161,7 @@ void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
     //Draw the Wave
     MoveToEx(hdc, x0, ((0xFFFF - aWaveToDraw[0]) / 0xFF + 122), (LPPOINT)NULL);
     for (int i = 0; i < 360; i = i + sadd)
-        LineTo(hdc,i+x0, (0xFFFF-aWaveToDraw[i])/0xFF+122);
+        LineTo(hdc, i + x0, (0xFFFF - aWaveToDraw[i]) / 0xFF + 122);
     for (int i = 0; i < 360; i = i + sadd)
         LineTo(hdc, 360 + i + x0, (0xFFFF - aWaveToDraw[i]) / 0xFF + 122);
     // Display maximal ampliude
@@ -172,5 +173,25 @@ void DrawWave(HWND hDlg, unsigned __int16* aWaveToDraw, SamplesPerWave eSPW,
     // Display minimal ampliude
     _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), dispVmin, 3);
     SetDlgItemTextA(hDlg, IDC_DISP_VMIN, szChDlgTmp);
+    //Display Period (T)
+    CHAR szPeriod[_CVTBUFSIZE]="T=";
+    double dispPeriod = 1 / CalcWavDspFrq(uFrqSP, eSPW);
+    if ((1 > dispPeriod) && (dispPeriod >= 0.001))
+    {
+        dispPeriod = dispPeriod * 1000;
+        _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), dispPeriod, 4);
+        strcat_s(szPeriod, szChDlgTmp);
+        strcat_s(szPeriod, "ms");
+        SetDlgItemTextA(hDlg, IDC_DISP_PERIOD, szPeriod);
+    }
+    if ((0.001 > dispPeriod) && (dispPeriod >= 0.000001))
+    {
+        dispPeriod = dispPeriod * 1000000;
+        _gcvt_s(szChDlgTmp, sizeof(szChDlgTmp), dispPeriod, 4);
+        strcat_s(szPeriod, szChDlgTmp);
+        strcat_s(szPeriod, "µs");
+        SetDlgItemTextA(hDlg, IDC_DISP_PERIOD, szPeriod);
+    }
+
     ReleaseDC(hDlg, hdc);
 }

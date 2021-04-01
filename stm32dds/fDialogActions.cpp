@@ -15,7 +15,18 @@ INT_PTR CALLBACK AboutDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
     {
+    case WM_NOTIFY:
+        switch (((LPNMHDR)lParam)->code)
+        {
+            case NM_CLICK:
+                ShellExecute(NULL, L"open",
+                    L"http://www.stm32dds.tk",NULL, NULL, SW_SHOW);
+            return (INT_PTR)TRUE;
+        }
     case WM_INITDIALOG:
+        SetDlgItemTextA(hDlg, IDC_VERSION,
+             (LPCSTR)"0.1"
+        );
         return (INT_PTR)TRUE;
     case WM_COMMAND:
         if (LOWORD(wParam) == IDCANCEL)
@@ -29,9 +40,9 @@ INT_PTR CALLBACK AboutDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 } 
 
 // Create and Show the box - "About".
-void onAbout(HWND hDlg)
+void onAbout(HWND hDlg,HINSTANCE hInst)
 {
-    DialogBox(NULL, MAKEINTRESOURCE(IDD_ABOUTBOX), hDlg, AboutDialog);
+    DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hDlg, AboutDialog);
 }
 
 //Change and display SPW parameter
